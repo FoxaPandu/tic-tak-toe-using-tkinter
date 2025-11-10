@@ -1,0 +1,138 @@
+import pygame, sys, math
+
+pygame.init()
+WIDTH = 500
+SCREEN = pygame.display.set_mode((WIDTH, WIDTH))
+pygame.display.set_caption("Tic Tac Toe - AI (Minimax)")
+
+# Colors
+BG = (20, 20, 20)
+LINE_COLOR = (90, 90, 90)
+X_COLOR = (50, 200, 255)
+O_COLOR = (255, 120, 60)
+HIGHLIGHT = (60, 255, 150)
+
+font = pygame.font.SysFont("Poppins", 80, bold=True)
+small_font = pygame.font.SysFont("Poppins", 40, bold=True)
+
+board = [["" for _ in range(3)] for _ in range(3)]
+player = "X"
+game_over = False
+
+def draw_board():
+    SCREEN.fill(BG)
+
+    # Neon Glow Grid
+    for i in range(1, 3):
+        pygame.draw.line(SCREEN, LINE_COLOR, (0, i * WIDTH // 3), (WIDTH, i * WIDTH // 3), 5)
+        pygame.draw.line(SCREEN, LINE_COLOR, (i * WIDTH // 3, 0), (i * WIDTH // 3, WIDTH), 5)
+
+def draw_symbols():
+    for r in range(3):
+        for c in range(3):
+            if board[r][c] != "":
+                symbol = board[r][c]
+                color = X_COLOR if symbol == "X" else O_COLOR
+
+                text = font.render(symbol, True, color)
+                text_rect = text.get_rect(center=(
+                    c * WIDTH//3 + WIDTH//6,
+                    r * WIDTH//3 + WIDTH//6
+                ))
+                SCREEN.blit(text, text_rect)
+
+def available_moves():
+    moves = []
+    for r in range(3):
+        for c in range(3):
+            if board[r][c] == "":
+                moves.append((r, c))
+    return moves
+
+def check_winner():
+    # Rows, Columns, Diagonals
+    for r in range(3):
+        if board[r][0] == board[r][1] == board[r][2] != "":
+            return board[r][0]
+    for c in range(3):
+        if board[0][c] == board[1][c] == board[2][c] != "":
+            return board[0][c]
+    if board[0][0] == board[1][1] == board[2][2] != "":
+        return board[0][0]
+    if board[0][2] == board[1][1] == board[2][0] != "":
+        return board[0][2]
+    return None
+
+def minimax(is_maximizing):
+    winner = check_winner()
+    if winner == "O": return 1
+    if winner == "X": return -1
+    if not available_moves(): return 0
+
+    if is_maximizing:
+        best = -math.inf
+        for (r, c) in available_moves():
+            board[r][c] = "O"
+            score = minimax(False)
+            board[r][c] = ""
+            best = max(best, score)
+        return best
+    else:
+        best = math.inf
+        for (r, c) in available_moves():
+            board[r][c] = "X"
+            score = minimax(True)
+            board[r][c] = ""
+            best = min(best, score)
+        return best
+
+def ai_move():
+    best_score = -math.inf
+    move = None
+    for (r, c) in available_moves():
+        board[r][c] = "O"
+        score = minimax(False)
+        board[r][c] = ""
+        if score > best_score:
+            best_score = score
+            move = (r, c)
+    if move:
+        board[move[0]][move[1]] = "O"
+
+def show_result(text):
+    result = small_font.render(text, True, HIGHLIGHT)
+    SCREEN.blit(result, (WIDTH//2 - result.get_width()//2, WIDTH//2 - 20))
+    pygame.display.update()
+    pygame.time.delay(2000)
+
+def main():
+    global player, game_over, board
+    while True:
+        draw_board()
+        draw_symbols()
+        pygame.display.update()
+
+        winner = check_winner()
+        if winner:
+            show_result(f"{winner} Wins!")
+            board = [["" for _ in range(3)] for _ in range(3)]
+            continue
+        elif not available_moves():
+            show_result("Draw!")
+            board = [["" for _ in range(3)] for _ in range(3)]
+            continue
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit(); sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN and not game_over:
+                x, y = pygame.mouse.get_pos()
+                r = y // (WIDTH//3)
+                c = x // (WIDTH//3)
+
+                if board[r][c] == "":
+                    board[r][c] = "X"
+                    ai_move()
+
+main()
